@@ -4,17 +4,26 @@ use std::{fs, io};
 use toml;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Level {
+    Session,
+    Local,
+    Global,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
     pub id: String,
     pub name: String,
     pub email: String,
     pub ssh_key: Option<String>,
+    pub default_level: Option<Level>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Defaults {
     pub profile: Option<String>,
     pub tui: bool,
+    pub level: Level,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +37,7 @@ impl Defaults {
         Self {
             profile: None,
             tui: false,
+            level: Level::Session,
         }
     }
 }
@@ -45,6 +55,18 @@ impl Config {
 pub enum LoadError {
     ReadError(io::Error),
     ParseError(toml::de::Error),
+}
+
+impl Profile {
+    pub fn new(id: String, name: String, email: String) -> Self {
+        Self {
+            id,
+            name,
+            email,
+            ssh_key: None,
+            default_level: None,
+        }
+    }
 }
 
 pub fn load_config() -> Result<Config, LoadError> {
