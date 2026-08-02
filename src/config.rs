@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{fs, io};
 use toml;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 pub enum Level {
     Session,
     Local,
@@ -12,7 +12,7 @@ pub enum Level {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
-    pub id: String,
+    pub id: u32,
     pub name: String,
     pub email: String,
     pub ssh_key: Option<String>,
@@ -49,6 +49,19 @@ impl Config {
             profiles: Vec::new(),
         }
     }
+
+    pub fn load() -> Result<Config, LoadError> {
+        let file_content = fs::read_to_string(CONFIG_FILE).map_err(|e| LoadError::ReadError(e))?;
+        let config: Config = toml::from_str(&file_content).map_err(|e| LoadError::ParseError(e))?;
+        Ok(config)
+    }
+
+    pub fn save(&self) -> io::Result<()> {
+        let file_content =
+            toml::to_string(self).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        fs::write(CONFIG_FILE, file_content)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -58,26 +71,19 @@ pub enum LoadError {
 }
 
 impl Profile {
-    pub fn new(id: String, name: String, email: String) -> Self {
+    pub fn new(
+        id: u32,
+        name: String,
+        email: String,
+        ssh_key: Option<String>,
+        default_level: Option<Level>,
+    ) -> Self {
         Self {
             id,
             name,
             email,
-            ssh_key: None,
-            default_level: None,
+            ssh_key,
+            default_level,
         }
     }
-}
-
-pub fn load_config() -> Result<Config, LoadError> {
-    let file_content = fs::read_to_string(CONFIG_FILE).map_err(|e| LoadError::ReadError(e))?;
-    let config: Config = toml::from_str(&file_content).map_err(|e| LoadError::ParseError(e))?;
-    Ok(config)
-}
-
-pub fn save_config(config: &Config) -> io::Result<()> {
-    let file_content =
-        toml::to_string(config).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    fs::write(CONFIG_FILE, file_content)?;
-    Ok(())
 }
